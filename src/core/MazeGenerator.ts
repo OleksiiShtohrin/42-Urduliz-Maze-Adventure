@@ -2,12 +2,13 @@ import { Cell, MazeConfig, Position } from './types';
 
 /**
  * MazeGenerator: DFS Recursive Backtracker algorithm
- * Generates a perfect maze (no cycles, single solution)
+ * Generates a seeded maze and can optionally add loops when perfect mode is off
  */
 export class MazeGenerator {
   private width: number;
   private height: number;
   private seed: number;
+  private perfectMode: boolean;
   private maze: Cell[][];
   private visited: boolean[][];
   private randomState: number;
@@ -20,6 +21,7 @@ export class MazeGenerator {
     this.width = config.width;
     this.height = config.height;
     this.seed = config.seed;
+    this.perfectMode = config.perfectMode;
     this.maze = [];
     this.visited = [];
     this.randomState = config.seed;
@@ -66,6 +68,11 @@ export class MazeGenerator {
     return candidate % 2 === 0 ? candidate - 1 : candidate;
   }
 
+  private getExitInteriorY(): number {
+    const candidate = this.height - 2;
+    return candidate % 2 === 0 ? candidate - 1 : candidate;
+  }
+
   /**
    * Generate the maze using seed for reproducibility
    */
@@ -77,11 +84,15 @@ export class MazeGenerator {
     // Start DFS from (1, 1) leaving room for borders
     this.carvePath(1, 1);
 
-    // Open edge portals after generation so entry/exit are always reachable
-    this.openPortals();
+    if (!this.perfectMode) {
+      this.addExtraLoops();
+    }
 
     // Ensure zone 42 is completely surrounded by walls
     this.protectZone42();
+
+    // Open edge portals after generation so entry/exit are always reachable
+    this.openPortals();
 
     return this.maze;
   }
@@ -268,14 +279,61 @@ export class MazeGenerator {
   }
 
   /**
+   * Create a few extra openings so the maze gets loops when perfect mode is off.
+   */
+  private addExtraLoops(): void {
+    const candidates: Array<{
+      x: number;
+      y: number;
+      side: 'right' | 'bottom';
+      opposite: 'left' | 'top';
+      nx: number;
+      ny: number;
+    }> = [];
+
+    for (let y = 1; y < this.height - 1; y++) {
+      for (let x = 1; x < this.width - 1; x++) {
+        if (this.isInProtectedArea(x, y)) continue;
+
+        const rightX = x + 1;
+        const bottomY = y + 1;
+
+        if (rightX < this.width - 1 && !this.isInProtectedArea(rightX, y) && this.maze[y][x].walls.right) {
+          candidates.push({ x, y, side: 'right', opposite: 'left', nx: rightX, ny: y });
+        }
+
+        if (bottomY < this.height - 1 && !this.isInProtectedArea(x, bottomY) && this.maze[y][x].walls.bottom) {
+          candidates.push({ x, y, side: 'bottom', opposite: 'top', nx: x, ny: bottomY });
+        }
+      }
+    }
+
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = this.seededRandom(0, i);
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    const openings = Math.min(candidates.length, Math.max(12, Math.floor(candidates.length * 0.08)));
+
+    for (let i = 0; i < openings; i++) {
+      const candidate = candidates[i];
+      this.maze[candidate.y][candidate.x].walls[candidate.side] = false;
+      this.maze[candidate.ny][candidate.nx].walls[candidate.opposite] = false;
+    }
+  }
+
+  /**
    * Open the top entry and bottom-right exit portals.
    */
   private openPortals(): void {
     const entryBorder = { x: 1, y: 0 };
     const entryInterior = { x: 1, y: 1 };
     const exitBorderX = this.getExitInteriorX();
-    const exitBorder = { x: exitBorderX, y: this.height - 1 };
-    const exitInterior = { x: exitBorderX, y: this.height - 2 };
+    const exitBorderY = this.height - 1;
+    const exitInteriorY = this.getExitInteriorY();
+    const exitBorder = { x: exitBorderX, y: exitBorderY };
+    const exitInterior = { x: exitBorderX, y: exitInteriorY };
+    const exitCorridor = { x: exitBorderX, y: exitInteriorY + 1 };
 
     if (this.maze[entryBorder.y]?.[entryBorder.x] && this.maze[entryInterior.y]?.[entryInterior.x]) {
       this.maze[entryBorder.y][entryBorder.x].walls.bottom = false;
@@ -283,8 +341,15 @@ export class MazeGenerator {
     }
 
     if (this.maze[exitBorder.y]?.[exitBorder.x] && this.maze[exitInterior.y]?.[exitInterior.x]) {
-      this.maze[exitBorder.y][exitBorder.x].walls.top = false;
-      this.maze[exitInterior.y][exitInterior.x].walls.bottom = false;
+      if (this.maze[exitCorridor.y]?.[exitCorridor.x]) {
+        this.maze[exitInterior.y][exitInterior.x].walls.bottom = false;
+        this.maze[exitCorridor.y][exitCorridor.x].walls.top = false;
+        this.maze[exitCorridor.y][exitCorridor.x].walls.bottom = false;
+        this.maze[exitBorder.y][exitBorder.x].walls.top = false;
+      } else {
+        this.maze[exitBorder.y][exitBorder.x].walls.top = false;
+        this.maze[exitInterior.y][exitInterior.x].walls.bottom = false;
+      }
     }
   }
 }

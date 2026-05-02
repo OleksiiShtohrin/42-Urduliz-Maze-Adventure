@@ -6,6 +6,11 @@ import { GameState, MazeConfig, Position } from './types';
 export class MazeState {
   public state: GameState;
 
+  private getExitInteriorY(height: number): number {
+    const candidate = height - 2;
+    return candidate % 2 === 0 ? candidate - 1 : candidate;
+  }
+
   constructor(config: MazeConfig) {
     const zone42 = {
       x: Math.floor((config.width - 7) / 2),
@@ -15,13 +20,14 @@ export class MazeState {
     };
 
     const exitInteriorX = (config.width - 2) % 2 === 0 ? config.width - 3 : config.width - 2;
+    const exitInteriorY = this.getExitInteriorY(config.height);
 
     this.state = {
       config,
       maze: [],
       playerPos: { x: 1, y: 1 },
       entryPos: { x: 1, y: 1 },
-      exitPos: { x: exitInteriorX, y: config.height - 2 },
+      exitPos: { x: exitInteriorX, y: exitInteriorY },
       zone42,
       currentPath: null,
       gameOver: false,

@@ -7,11 +7,10 @@ import { Cell, Position } from '../core/types';
 export class Renderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private cellSize: number = 16; // pixels per cell
-  private margin: number = 32;
+  private cellSize: number = 20;
   private layoutSignature: string = '';
-  private mazeOffsetX: number = 32;
-  private mazeOffsetY: number = 32;
+  private cameraX: number = 0;
+  private cameraY: number = 0;
 
   constructor(canvasElement: HTMLCanvasElement) {
     this.canvas = canvasElement;
@@ -27,8 +26,8 @@ export class Renderer {
   public render(state: GameState): void {
     this.updateLayout(state);
 
-    // Clear canvas with background color
-    this.ctx.fillStyle = '#4d7a3b';
+    // Flat black backdrop to match the reference artwork.
+    this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     if (state.maze.length === 0) return;
@@ -60,16 +59,16 @@ export class Renderer {
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[y].length; x++) {
         const cell = maze[y][x];
-        const px = this.mazeOffsetX + x * this.cellSize;
-        const py = this.mazeOffsetY + y * this.cellSize;
+        const px = this.worldToScreenX(x);
+        const py = this.worldToScreenY(y);
 
-        // Draw cell floor
-        this.ctx.fillStyle = '#8b7355'; // Brown path
+        // Warm, paper-like corridor tone.
+        this.ctx.fillStyle = '#e4dccd';
         this.ctx.fillRect(px, py, this.cellSize, this.cellSize);
 
-        // Draw walls as lines
-        this.ctx.strokeStyle = '#2a5d3f'; // Dark green wall
-        this.ctx.lineWidth = 2;
+        // Dark, crisp wall lines.
+        this.ctx.strokeStyle = '#111111';
+        this.ctx.lineWidth = 1.35;
 
         if (cell.walls.top) {
           this.ctx.beginPath();
@@ -98,6 +97,11 @@ export class Renderer {
           this.ctx.lineTo(px, py + this.cellSize);
           this.ctx.stroke();
         }
+
+        // A faint grid keeps the maze readable without overpowering the reference style.
+        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(px + 0.5, py + 0.5, this.cellSize - 1, this.cellSize - 1);
       }
     }
   }
@@ -107,23 +111,23 @@ export class Renderer {
    */
   private drawZone42(state: GameState): void {
     const z = state.zone42;
-    const px = this.mazeOffsetX + z.x * this.cellSize;
-    const py = this.mazeOffsetY + z.y * this.cellSize;
+    const px = this.worldToScreenX(z.x);
+    const py = this.worldToScreenY(z.y);
     const w = z.width * this.cellSize;
     const h = z.height * this.cellSize;
 
-    // Fill zone 42 with special color
-    this.ctx.fillStyle = '#d4af37'; // Gold
+    // Center block should read like a protected logo plaque.
+    this.ctx.fillStyle = '#2a2a2a';
     this.ctx.fillRect(px, py, w, h);
 
-    // Draw border
-    this.ctx.strokeStyle = '#9d8b16';
-    this.ctx.lineWidth = 3;
+    // Thin, hard border like the reference's graphic treatment.
+    this.ctx.strokeStyle = '#111111';
+    this.ctx.lineWidth = 1.5;
     this.ctx.strokeRect(px, py, w, h);
 
-    // Draw "42" text
-    this.ctx.fillStyle = '#000';
-    this.ctx.font = `bold ${Math.floor(this.cellSize * 2)}px Arial`;
+    // Bright text keeps the center block iconic and legible.
+    this.ctx.fillStyle = '#f4f4f4';
+    this.ctx.font = `900 ${Math.floor(this.cellSize * 1.55)}px Arial`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.ctx.fillText('42', px + w / 2, py + h / 2);
@@ -133,123 +137,139 @@ export class Renderer {
    * Draw entry and exit markers
    */
   private drawMarkers(state: GameState): void {
-    // Draw entry marker (green glow)
-    const entryPx = this.mazeOffsetX + state.entryPos.x * this.cellSize;
-    const entryPy = this.mazeOffsetY + state.entryPos.y * this.cellSize;
+    // Draw entry marker (subtle green circle)
+    const entryPx = this.worldToScreenX(state.entryPos.x);
+    const entryPy = this.worldToScreenY(state.entryPos.y);
 
-    this.ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-    this.ctx.fillRect(entryPx, entryPy, this.cellSize, this.cellSize);
+    this.ctx.strokeStyle = 'rgba(40, 40, 40, 0.8)';
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.arc(entryPx + this.cellSize / 2, entryPy + this.cellSize / 2, this.cellSize / 3, 0, Math.PI * 2);
+    this.ctx.stroke();
 
-    // Draw exit marker (purple/magical glow)
-    const exitPx = this.mazeOffsetX + state.exitPos.x * this.cellSize;
-    const exitPy = this.mazeOffsetY + state.exitPos.y * this.cellSize;
+    // Draw exit marker (mysterious portal glow)
+    const exitPx = this.worldToScreenX(state.exitPos.x);
+    const exitPy = this.worldToScreenY(state.exitPos.y);
 
     // Animated glow effect
-    const glowIntensity = (Math.sin(Date.now() / 500) + 1) / 2; // 0 to 1
-    this.ctx.fillStyle = `rgba(186, 85, 211, ${0.2 + glowIntensity * 0.3})`;
-    this.ctx.fillRect(exitPx, exitPy, this.cellSize, this.cellSize);
-
-    // Add spiral effect for portal
-    this.ctx.strokeStyle = `rgba(186, 85, 211, ${0.5 + glowIntensity * 0.5})`;
+    const glowIntensity = (Math.sin(Date.now() / 600) + 1) / 2; // 0 to 1
+    
+    // Outer ring
+    this.ctx.strokeStyle = `rgba(210, 210, 210, ${0.18 + glowIntensity * 0.18})`;
     this.ctx.lineWidth = 1;
-    const centerX = exitPx + this.cellSize / 2;
-    const centerY = exitPy + this.cellSize / 2;
-    const radius = this.cellSize / 4;
-
     this.ctx.beginPath();
-    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    this.ctx.arc(exitPx + this.cellSize / 2, exitPy + this.cellSize / 2, this.cellSize / 3.5, 0, Math.PI * 2);
     this.ctx.stroke();
+
+    // Inner glow
+    this.ctx.fillStyle = `rgba(230, 230, 230, ${0.12 + glowIntensity * 0.12})`;
+    this.ctx.beginPath();
+    this.ctx.arc(exitPx + this.cellSize / 2, exitPy + this.cellSize / 2, this.cellSize / 4, 0, Math.PI * 2);
+    this.ctx.fill();
   }
 
   /**
    * Draw player character at position
    */
   private drawPlayer(pos: Position): void {
-    const px = this.mazeOffsetX + pos.x * this.cellSize;
-    const py = this.mazeOffsetY + pos.y * this.cellSize;
+    const px = this.worldToScreenX(pos.x);
+    const py = this.worldToScreenY(pos.y);
 
-    // Draw player as a circle with color
-    this.ctx.fillStyle = '#ff69b4'; // Hot pink
+    // Small, simple marker closer to the reference screenshot.
+    this.ctx.fillStyle = '#f8f8f8';
     this.ctx.beginPath();
-    this.ctx.arc(px + this.cellSize / 2, py + this.cellSize / 2, this.cellSize / 2.5, 0, Math.PI * 2);
+    this.ctx.arc(px + this.cellSize / 2, py + this.cellSize / 2, this.cellSize / 3.6, 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Add a border
-    this.ctx.strokeStyle = '#ff1493';
-    this.ctx.lineWidth = 2;
+    // Add thin border
+    this.ctx.strokeStyle = '#666666';
+    this.ctx.lineWidth = 1;
     this.ctx.stroke();
 
-    // Draw "eyes" for character
-    this.ctx.fillStyle = '#fff';
-    const eyeRadius = this.cellSize / 10;
-    const eyeOffsetX = this.cellSize / 6;
-    const eyeOffsetY = -this.cellSize / 8;
-
+    // Small dot in the center for direction indicator
+    this.ctx.fillStyle = '#202020';
     this.ctx.beginPath();
-    this.ctx.arc(px + this.cellSize / 2 - eyeOffsetX, py + this.cellSize / 2 + eyeOffsetY, eyeRadius, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.beginPath();
-    this.ctx.arc(px + this.cellSize / 2 + eyeOffsetX, py + this.cellSize / 2 + eyeOffsetY, eyeRadius, 0, Math.PI * 2);
+    this.ctx.arc(px + this.cellSize / 2, py + this.cellSize / 2, this.cellSize / 14, 0, Math.PI * 2);
     this.ctx.fill();
   }
 
   /**
-   * Draw path hint (highlighted cells)
+   * Draw path hint (highlighted cells as a subtle line)
    */
   private drawPathHint(path: Position[]): void {
-    // Draw path with semi-transparent highlighting
+    if (path.length === 0) return;
+
+    // Draw path as a continuous line (like tracing a route on a map)
+    this.ctx.strokeStyle = 'rgba(120, 120, 120, 0.45)';
+    this.ctx.lineWidth = 2;
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
+
+    this.ctx.beginPath();
+    
     for (let i = 0; i < path.length; i++) {
       const pos = path[i];
-      const px = this.mazeOffsetX + pos.x * this.cellSize;
-      const py = this.mazeOffsetY + pos.y * this.cellSize;
+      const px = this.worldToScreenX(pos.x) + this.cellSize / 2;
+      const py = this.worldToScreenY(pos.y) + this.cellSize / 2;
 
-      // Gradient from yellow to transparent
-      const opacity = (1 - i / path.length) * 0.4;
-      this.ctx.fillStyle = `rgba(255, 255, 100, ${opacity})`;
-      this.ctx.fillRect(px, py, this.cellSize, this.cellSize);
-
-      // Draw line segments
-      if (i < path.length - 1) {
-        const nextPos = path[i + 1];
-        const nextPx = this.mazeOffsetX + nextPos.x * this.cellSize + this.cellSize / 2;
-        const nextPy = this.mazeOffsetY + nextPos.y * this.cellSize + this.cellSize / 2;
-        const currentPx = px + this.cellSize / 2;
-        const currentPy = py + this.cellSize / 2;
-
-        this.ctx.strokeStyle = 'rgba(255, 255, 100, 0.6)';
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.ctx.moveTo(currentPx, currentPy);
-        this.ctx.lineTo(nextPx, nextPy);
-        this.ctx.stroke();
+      if (i === 0) {
+        this.ctx.moveTo(px, py);
+      } else {
+        this.ctx.lineTo(px, py);
       }
+    }
+    
+    this.ctx.stroke();
+
+    // Subtle waypoints along the path
+    for (let i = 0; i < path.length; i += Math.ceil(path.length / 8)) {
+      const pos = path[i];
+      const px = this.worldToScreenX(pos.x) + this.cellSize / 2;
+      const py = this.worldToScreenY(pos.y) + this.cellSize / 2;
+
+      this.ctx.fillStyle = 'rgba(100, 100, 100, 0.24)';
+      this.ctx.beginPath();
+      this.ctx.arc(px, py, this.cellSize / 6, 0, Math.PI * 2);
+      this.ctx.fill();
     }
   }
 
   private updateLayout(state: GameState): void {
-    const signature = `${state.config.width}x${state.config.height}:${window.innerWidth}x${window.innerHeight}`;
-    if (signature === this.layoutSignature) return;
+    const signature = `${window.innerWidth}x${window.innerHeight}`;
+    const availableWidth = Math.min(Math.max(320, window.innerWidth - 48), 1400);
+    const availableHeight = Math.min(Math.max(240, window.innerHeight - 190), 900);
 
-    const availableWidth = Math.max(320, window.innerWidth - 48);
-    const availableHeight = Math.max(240, window.innerHeight - 180);
-
-    const horizontalCell = Math.floor(availableWidth / state.config.width);
-    const verticalCell = Math.floor(availableHeight / state.config.height);
-
-    this.cellSize = Math.max(8, Math.min(28, horizontalCell, verticalCell));
+    if (signature !== this.layoutSignature) {
+      this.canvas.width = availableWidth;
+      this.canvas.height = availableHeight;
+      this.canvas.style.width = `${availableWidth}px`;
+      this.canvas.style.height = `${availableHeight}px`;
+      this.layoutSignature = signature;
+    }
 
     const mazeWidth = state.config.width * this.cellSize;
     const mazeHeight = state.config.height * this.cellSize;
-    const extraX = Math.max(0, Math.floor((availableWidth - mazeWidth) / 2));
-    const extraY = Math.max(0, Math.floor((availableHeight - mazeHeight) / 2));
+    const playerCenterX = (state.playerPos.x + 0.5) * this.cellSize;
+    const playerCenterY = (state.playerPos.y + 0.5) * this.cellSize;
 
-    this.mazeOffsetX = Math.max(this.margin, extraX);
-    this.mazeOffsetY = Math.max(this.margin, extraY + 40);
+    if (mazeWidth <= this.canvas.width) {
+      this.cameraX = -(this.canvas.width - mazeWidth) / 2;
+    } else {
+      this.cameraX = Math.min(Math.max(playerCenterX - this.canvas.width / 2, 0), mazeWidth - this.canvas.width);
+    }
 
-    this.canvas.width = Math.max(availableWidth, mazeWidth + this.margin * 2);
-    this.canvas.height = Math.max(availableHeight, mazeHeight + this.margin * 2 + 40);
+    if (mazeHeight <= this.canvas.height) {
+      this.cameraY = -(this.canvas.height - mazeHeight) / 2;
+    } else {
+      this.cameraY = Math.min(Math.max(playerCenterY - this.canvas.height / 2, 0), mazeHeight - this.canvas.height);
+    }
+  }
 
-    this.layoutSignature = signature;
+  private worldToScreenX(cellX: number): number {
+    return cellX * this.cellSize - this.cameraX;
+  }
+
+  private worldToScreenY(cellY: number): number {
+    return cellY * this.cellSize - this.cameraY;
   }
 }

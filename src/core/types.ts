@@ -22,7 +22,7 @@ export interface MazeConfig {
   width: number;
   height: number;
   seed: number;
-  perfectMode: boolean; // Always true in v1
+  perfectMode: boolean;
 }
 
 export interface GameState {

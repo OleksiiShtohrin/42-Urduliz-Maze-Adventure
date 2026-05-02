@@ -9,26 +9,66 @@
 <body>
   <div id="app">
     <div id="menu" class="menu">
-      <h1>Urduliz Maze Adventure</h1>
-      
-      <div class="menu-group">
-        <label for="seed">Seed:</label>
-        <input type="text" id="seed" placeholder="Random if empty">
-        <button id="paste-seed">Paste</button>
-      </div>
+      <section class="menu-hero">
+        <p class="eyebrow">Canvas maze adventure · perfect mode v1</p>
+        <h1>Urduliz Maze Adventure</h1>
+        <p class="menu-lead">
+          A dark, replayable maze run with a protected 42 core, seeded generation, and a shortest-path hint.
+        </p>
 
-      <div class="menu-row">
-        <div class="menu-group">
-          <label for="width">Width:</label>
-          <input type="number" id="width" min="15" max="50" value="25">
+        <div class="menu-highlights">
+          <div class="highlight-card">
+            <span class="highlight-label">Mode</span>
+            <strong>Perfect maze</strong>
+          </div>
+          <div class="highlight-card">
+            <span class="highlight-label">Controls</span>
+            <strong>Keyboard + swipe</strong>
+          </div>
+          <div class="highlight-card">
+            <span class="highlight-label">Center</span>
+            <strong>Protected 42 zone</strong>
+          </div>
         </div>
-        <div class="menu-group">
-          <label for="height">Height:</label>
-          <input type="number" id="height" min="15" max="50" value="25">
-        </div>
-      </div>
+      </section>
 
-      <button id="start-btn" class="start-button">Play</button>
+      <section class="menu-card" aria-label="Start a new run">
+        <div class="menu-card__header">
+          <span class="menu-pill">Featured run</span>
+          <span class="menu-meta">Seeded, shareable, no cycles</span>
+        </div>
+
+        <div class="menu-group">
+          <label for="seed">Seed</label>
+          <div class="input-row">
+            <input type="text" id="seed" placeholder="Random if empty">
+            <button id="paste-seed">Paste</button>
+          </div>
+        </div>
+
+        <div class="menu-row">
+          <div class="menu-group">
+            <label for="width">Width</label>
+            <input type="number" id="width" min="15" max="50" value="25">
+          </div>
+          <div class="menu-group">
+            <label for="height">Height</label>
+            <input type="number" id="height" min="15" max="50" value="25">
+          </div>
+        </div>
+
+        <div class="mode-row">
+          <label class="toggle-option" for="perfect-mode">
+            <input type="checkbox" id="perfect-mode" checked>
+            <span>
+              <strong>Perfect mode</strong>
+              <small>Uncheck for extra loops</small>
+            </span>
+          </label>
+        </div>
+
+        <button id="start-btn" class="start-button">Play</button>
+      </section>
     </div>
 
     <div id="game-container" class="game-container" style="display: none;">
@@ -38,7 +78,9 @@
         <button id="hint-btn">Path Hint</button>
         <button id="back-btn">Back to Menu</button>
       </div>
-      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <div class="canvas-shell">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+      </div>
     </div>
   </div>
 

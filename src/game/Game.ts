@@ -18,6 +18,7 @@ export class Game {
   private mazeGenerator?: MazeGenerator;
   private gameState?: MazeState;
   private currentMode: GameMode = 'menu';
+  private isPathHintVisible = false;
 
   constructor() {
     this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -30,8 +31,8 @@ export class Game {
   }
 
   private setupEventListeners(): void {
-    this.uiLayer.setStartGameCallback((seed, width, height) => {
-      this.startGame(seed, width, height);
+    this.uiLayer.setStartGameCallback((seed, width, height, perfectMode) => {
+      this.startGame(seed, width, height, perfectMode);
     });
 
     this.uiLayer.setBackToMenuCallback(() => {
@@ -39,7 +40,7 @@ export class Game {
     });
 
     this.uiLayer.setPathHintCallback(() => {
-      this.showPathHint();
+      this.togglePathHint();
     });
 
     this.inputController.setMoveCallback((dx, dy) => {
@@ -85,15 +86,26 @@ export class Game {
     if (canMove && this.gameState.isWalkable({ x: newX, y: newY })) {
       this.gameState.movePlayer(dx, dy);
 
+      if (this.isPathHintVisible && this.gameState.state.currentPath) {
+        const refreshedPath = PathFinder.findPath(
+          this.gameState.state.maze,
+          this.gameState.state.playerPos,
+          this.gameState.state.exitPos
+        );
+        this.gameState.setPathHint(refreshedPath);
+      }
+
       // Check if player reached exit
       if (this.gameState.state.gameOver) {
         this.currentMode = 'gameover';
+        this.isPathHintVisible = false;
+        this.uiLayer.setPathHintActive(false);
         window.alert('Congratulation!!!');
       }
     }
   }
 
-  private startGame(seed: number, width: number, height: number): void {
+  private startGame(seed: number, width: number, height: number, perfectMode: boolean): void {
     // Validate input
     width = Math.max(15, Math.min(50, width));
     height = Math.max(15, Math.min(50, height));
@@ -102,7 +114,7 @@ export class Game {
       seed,
       width,
       height,
-      perfectMode: true, // Always true in v1
+      perfectMode,
     };
 
     // Generate maze
@@ -115,9 +127,11 @@ export class Game {
     this.gameState.state.entryPos = { x: 1, y: 1 };
     this.gameState.state.exitPos = {
       x: (width - 2) % 2 === 0 ? width - 3 : width - 2,
-      y: height - 2,
+      y: (height - 2) % 2 === 0 ? height - 3 : height - 2,
     };
     this.gameState.resetPlayer();
+    this.isPathHintVisible = false;
+    this.uiLayer.setPathHintActive(false);
 
     // Update UI
     this.uiLayer.updateSeedDisplay(seed);
@@ -131,11 +145,20 @@ export class Game {
     this.currentMode = 'menu';
     this.gameState = undefined;
     this.mazeGenerator = undefined;
+    this.isPathHintVisible = false;
+    this.uiLayer.setPathHintActive(false);
     this.uiLayer.showMenu();
   }
 
-  private showPathHint(): void {
+  private togglePathHint(): void {
     if (!this.gameState) return;
+
+    if (this.isPathHintVisible) {
+      this.gameState.clearPathHint();
+      this.isPathHintVisible = false;
+      this.uiLayer.setPathHintActive(false);
+      return;
+    }
 
     const path = PathFinder.findPath(
       this.gameState.state.maze,
@@ -144,6 +167,8 @@ export class Game {
     );
 
     this.gameState.setPathHint(path);
+    this.isPathHintVisible = path.length > 0;
+    this.uiLayer.setPathHintActive(this.isPathHintVisible);
   }
 
   private gameLoop(): void {
@@ -161,15 +186,4 @@ export class Game {
   public start(): void {
     console.log('Urduliz Maze Adventure started');
   }
-}
-
-// Initialize game when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    const game = new Game();
-    game.start();
-  });
-} else {
-  const game = new Game();
-  game.start();
 }
