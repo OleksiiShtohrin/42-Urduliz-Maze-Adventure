@@ -23,15 +23,19 @@ export class UILayer {
 
     startBtn?.addEventListener('click', () => {
       let seed = seedInput.value ? parseInt(seedInput.value) : Math.floor(Math.random() * 1000000);
-      const width = parseInt(widthInput.value) || 25;
-      const height = parseInt(heightInput.value) || 25;
+      const width = Math.max(15, Math.min(50, parseInt(widthInput.value) || 25));
+      const height = Math.max(15, Math.min(50, parseInt(heightInput.value) || 25));
 
       this.onStartGame?.(seed, width, height);
     });
 
     pasteSeedBtn?.addEventListener('click', async () => {
-      const text = await navigator.clipboard.readText();
-      seedInput.value = text;
+      try {
+        const text = await navigator.clipboard.readText();
+        seedInput.value = text;
+      } catch (err) {
+        console.error('Failed to read clipboard:', err);
+      }
     });
   }
 
@@ -46,8 +50,15 @@ export class UILayer {
 
     copySeedBtn?.addEventListener('click', () => {
       const seedSpan = document.getElementById('seed-value');
-      if (seedSpan) {
-        navigator.clipboard.writeText(seedSpan.textContent || '');
+      if (seedSpan && seedSpan.textContent) {
+        navigator.clipboard.writeText(seedSpan.textContent).then(() => {
+          // Optional: show feedback
+          const originalText = copySeedBtn.textContent;
+          copySeedBtn.textContent = 'Copied!';
+          setTimeout(() => {
+            copySeedBtn.textContent = originalText;
+          }, 1500);
+        });
       }
     });
 
@@ -57,13 +68,17 @@ export class UILayer {
   }
 
   public showMenu(): void {
-    document.getElementById('menu')!.style.display = 'block';
-    document.getElementById('game-container')!.style.display = 'none';
+    const menu = document.getElementById('menu');
+    const gameContainer = document.getElementById('game-container');
+    if (menu) menu.style.display = 'block';
+    if (gameContainer) gameContainer.style.display = 'none';
   }
 
   public showGame(): void {
-    document.getElementById('menu')!.style.display = 'none';
-    document.getElementById('game-container')!.style.display = 'flex';
+    const menu = document.getElementById('menu');
+    const gameContainer = document.getElementById('game-container');
+    if (menu) menu.style.display = 'none';
+    if (gameContainer) gameContainer.style.display = 'flex';
   }
 
   public updateSeedDisplay(seed: number): void {

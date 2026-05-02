@@ -44,9 +44,48 @@ export class Game {
 
     this.inputController.setMoveCallback((dx, dy) => {
       if (this.gameState) {
-        this.gameState.movePlayer(dx, dy);
+        this.tryMovePlayer(dx, dy);
       }
     });
+  }
+
+  /**
+   * Try to move player with collision detection against maze walls
+   */
+  private tryMovePlayer(dx: number, dy: number): void {
+    if (!this.gameState) return;
+
+    const currentPos = this.gameState.state.playerPos;
+    const maze = this.gameState.state.maze;
+
+    // Get the current cell
+    const cell = maze[currentPos.y]?.[currentPos.x];
+    if (!cell) return;
+
+    const newX = currentPos.x + dx;
+    const newY = currentPos.y + dy;
+
+    // Check bounds
+    if (newX < 0 || newX >= maze[0].length || newY < 0 || newY >= maze.length) {
+      return;
+    }
+
+    // Check if there's a wall in the direction of movement
+    let canMove = false;
+
+    if (dx > 0 && !cell.walls.right) canMove = true; // Moving right
+    if (dx < 0 && !cell.walls.left) canMove = true; // Moving left
+    if (dy > 0 && !cell.walls.bottom) canMove = true; // Moving down
+    if (dy < 0 && !cell.walls.top) canMove = true; // Moving up
+
+    if (canMove) {
+      this.gameState.movePlayer(dx, dy);
+
+      // Check if player reached exit
+      if (this.gameState.state.gameOver) {
+        console.log('🎉 You reached the exit! Success!');
+      }
+    }
   }
 
   private startGame(seed: number, width: number, height: number): void {
