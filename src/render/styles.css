@@ -1,0 +1,164 @@
+/* Game Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Menu Styles */
+.menu {
+  background: linear-gradient(135deg, #2a5d3f, #1a4d2e);
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  text-align: center;
+}
+
+.menu h1 {
+  font-size: 2.5em;
+  margin-bottom: 30px;
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.menu-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.menu-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.menu-group input {
+  width: 100%;
+  padding: 8px;
+  font-size: 1em;
+  border: 2px solid #3a7d5f;
+  border-radius: 5px;
+  background-color: #f0f0f0;
+  color: #000;
+}
+
+.menu-group input:focus {
+  outline: none;
+  border-color: #5ebb8f;
+  box-shadow: 0 0 10px rgba(94, 187, 143, 0.3);
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.menu-group button {
+  margin-left: 0;
+  width: auto;
+  padding: 6px 12px;
+  font-size: 0.9em;
+}
+
+.start-button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 20px;
+  font-size: 1.2em;
+  font-weight: bold;
+  background: linear-gradient(135deg, #5ebb8f, #3a9d6f);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-button:hover {
+  background: linear-gradient(135deg, #7ecfb0, #5abb8f);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(94, 187, 143, 0.4);
+}
+
+button {
+  background-color: #5ebb8f;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #7ecfb0;
+  transform: translateY(-1px);
+}
+
+/* Game Container */
+.game-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #0f0f0f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+#gameCanvas {
+  display: block;
+  background-color: #2a2a2a;
+  margin-top: 60px;
+  border: 2px solid #5ebb8f;
+}
+
+/* HUD */
+.hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 15px;
+  border-radius: 5px;
+  font-size: 0.9em;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 100;
+}
+
+#seed-display {
+  font-family: 'Courier New', monospace;
+  background: #1a1a1a;
+  padding: 8px 12px;
+  border-radius: 3px;
+  border: 1px solid #5ebb8f;
+}
+
+#back-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 101;
+  padding: 10px 20px;
+}

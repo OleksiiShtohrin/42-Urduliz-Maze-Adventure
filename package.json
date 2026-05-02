@@ -1,0 +1,22 @@
+{
+  "name": "urduliz-maze-adventure",
+  "version": "1.0.0",
+  "description": "2D procedurally generated maze game",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "webpack serve --mode development",
+    "build": "webpack --mode production",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["maze", "game", "42school", "canvas", "typescript"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.0",
+    "webpack-dev-server": "^4.15.0",
+    "ts-loader": "^9.4.0"
+  }
+}
