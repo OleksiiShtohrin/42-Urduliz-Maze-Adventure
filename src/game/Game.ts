@@ -54,6 +54,7 @@ export class Game {
    */
   private tryMovePlayer(dx: number, dy: number): void {
     if (!this.gameState) return;
+    if (this.currentMode !== 'game' || this.gameState.state.gameOver) return;
 
     const currentPos = this.gameState.state.playerPos;
     const maze = this.gameState.state.maze;
@@ -70,24 +71,24 @@ export class Game {
       return;
     }
 
-    // Check if there's a wall in the direction of movement
+    const targetCell = maze[newY]?.[newX];
+    if (!targetCell) return;
+
+    // Require both cells to agree that movement is open
     let canMove = false;
 
-    if (dx > 0 && !cell.walls.right) canMove = true; // Moving right
-    if (dx < 0 && !cell.walls.left) canMove = true; // Moving left
-    if (dy > 0 && !cell.walls.bottom) canMove = true; // Moving down
-    if (dy < 0 && !cell.walls.top) canMove = true; // Moving up
+    if (dx > 0) canMove = !cell.walls.right && !targetCell.walls.left;
+    if (dx < 0) canMove = !cell.walls.left && !targetCell.walls.right;
+    if (dy > 0) canMove = !cell.walls.bottom && !targetCell.walls.top;
+    if (dy < 0) canMove = !cell.walls.top && !targetCell.walls.bottom;
 
-    if (canMove) {
-      if (!this.gameState.isWalkable({ x: newX, y: newY })) {
-        return;
-      }
-
+    if (canMove && this.gameState.isWalkable({ x: newX, y: newY })) {
       this.gameState.movePlayer(dx, dy);
 
       // Check if player reached exit
       if (this.gameState.state.gameOver) {
-        console.log('🎉 You reached the exit! Success!');
+        this.currentMode = 'gameover';
+        window.alert('Congratulation!!!');
       }
     }
   }
@@ -111,8 +112,11 @@ export class Game {
     // Initialize game state
     this.gameState = new MazeState(config);
     this.gameState.state.maze = maze;
-    this.gameState.state.entryPos = { x: 1, y: 0 };
-    this.gameState.state.exitPos = { x: (width - 2) % 2 === 0 ? width - 3 : width - 2, y: height - 1 };
+    this.gameState.state.entryPos = { x: 1, y: 1 };
+    this.gameState.state.exitPos = {
+      x: (width - 2) % 2 === 0 ? width - 3 : width - 2,
+      y: height - 2,
+    };
     this.gameState.resetPlayer();
 
     // Update UI

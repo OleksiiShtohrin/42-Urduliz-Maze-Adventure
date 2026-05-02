@@ -19,9 +19,9 @@ export class MazeState {
     this.state = {
       config,
       maze: [],
-      playerPos: { x: 1, y: 0 },
-      entryPos: { x: 1, y: 0 },
-      exitPos: { x: exitInteriorX, y: config.height - 1 },
+      playerPos: { x: 1, y: 1 },
+      entryPos: { x: 1, y: 1 },
+      exitPos: { x: exitInteriorX, y: config.height - 2 },
       zone42,
       currentPath: null,
       gameOver: false,

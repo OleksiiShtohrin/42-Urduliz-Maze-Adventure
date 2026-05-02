@@ -234,15 +234,21 @@ export class Renderer {
     const availableWidth = Math.max(320, window.innerWidth - 48);
     const availableHeight = Math.max(240, window.innerHeight - 180);
 
-    const horizontalCell = Math.floor((availableWidth - this.margin * 2) / state.config.width);
-    const verticalCell = Math.floor((availableHeight - this.margin * 2) / state.config.height);
+    const horizontalCell = Math.floor(availableWidth / state.config.width);
+    const verticalCell = Math.floor(availableHeight / state.config.height);
 
-    this.cellSize = Math.max(6, Math.min(24, horizontalCell, verticalCell));
-    this.mazeOffsetX = this.margin;
-    this.mazeOffsetY = this.margin;
+    this.cellSize = Math.max(8, Math.min(28, horizontalCell, verticalCell));
 
-    this.canvas.width = state.config.width * this.cellSize + this.margin * 2;
-    this.canvas.height = state.config.height * this.cellSize + this.margin * 2;
+    const mazeWidth = state.config.width * this.cellSize;
+    const mazeHeight = state.config.height * this.cellSize;
+    const extraX = Math.max(0, Math.floor((availableWidth - mazeWidth) / 2));
+    const extraY = Math.max(0, Math.floor((availableHeight - mazeHeight) / 2));
+
+    this.mazeOffsetX = Math.max(this.margin, extraX);
+    this.mazeOffsetY = Math.max(this.margin, extraY + 40);
+
+    this.canvas.width = Math.max(availableWidth, mazeWidth + this.margin * 2);
+    this.canvas.height = Math.max(availableHeight, mazeHeight + this.margin * 2 + 40);
 
     this.layoutSignature = signature;
   }
