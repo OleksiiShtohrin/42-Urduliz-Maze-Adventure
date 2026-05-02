@@ -79,6 +79,10 @@ export class Game {
     if (dy < 0 && !cell.walls.top) canMove = true; // Moving up
 
     if (canMove) {
+      if (!this.gameState.isWalkable({ x: newX, y: newY })) {
+        return;
+      }
+
       this.gameState.movePlayer(dx, dy);
 
       // Check if player reached exit
@@ -107,6 +111,8 @@ export class Game {
     // Initialize game state
     this.gameState = new MazeState(config);
     this.gameState.state.maze = maze;
+    this.gameState.state.entryPos = { x: 1, y: 0 };
+    this.gameState.state.exitPos = { x: (width - 2) % 2 === 0 ? width - 3 : width - 2, y: height - 1 };
     this.gameState.resetPlayer();
 
     // Update UI

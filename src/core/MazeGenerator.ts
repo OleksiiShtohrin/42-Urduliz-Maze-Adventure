@@ -14,6 +14,7 @@ export class MazeGenerator {
 
   // Zone 42 boundaries
   private zone42: { x: number; y: number; width: number; height: number };
+  private protectedArea: { x: number; y: number; width: number; height: number };
 
   constructor(config: MazeConfig) {
     this.width = config.width;
@@ -30,6 +31,13 @@ export class MazeGenerator {
       width: 7,
       height: 5,
     };
+
+    this.protectedArea = {
+      x: Math.max(0, this.zone42.x - 1),
+      y: Math.max(0, this.zone42.y - 1),
+      width: Math.min(this.width - Math.max(0, this.zone42.x - 1), this.zone42.width + 2),
+      height: Math.min(this.height - Math.max(0, this.zone42.y - 1), this.zone42.height + 2),
+    };
   }
 
   /**
@@ -44,6 +52,20 @@ export class MazeGenerator {
     );
   }
 
+  private isInProtectedArea(x: number, y: number): boolean {
+    return (
+      x >= this.protectedArea.x &&
+      x < this.protectedArea.x + this.protectedArea.width &&
+      y >= this.protectedArea.y &&
+      y < this.protectedArea.y + this.protectedArea.height
+    );
+  }
+
+  private getExitInteriorX(): number {
+    const candidate = this.width - 2;
+    return candidate % 2 === 0 ? candidate - 1 : candidate;
+  }
+
   /**
    * Generate the maze using seed for reproducibility
    */
@@ -54,6 +76,9 @@ export class MazeGenerator {
 
     // Start DFS from (1, 1) leaving room for borders
     this.carvePath(1, 1);
+
+    // Open edge portals after generation so entry/exit are always reachable
+    this.openPortals();
 
     // Ensure zone 42 is completely surrounded by walls
     this.protectZone42();
@@ -81,8 +106,8 @@ export class MazeGenerator {
     for (let y = 0; y < this.height; y++) {
       const row: boolean[] = [];
       for (let x = 0; x < this.width; x++) {
-        // Mark zone 42 and borders as visited to avoid carving through them
-        row.push(x === 0 || y === 0 || x === this.width - 1 || y === this.height - 1 || this.isInZone42(x, y));
+        // Mark borders and protected area as visited to avoid carving through them
+        row.push(x === 0 || y === 0 || x === this.width - 1 || y === this.height - 1 || this.isInProtectedArea(x, y));
       }
       this.visited.push(row);
     }
@@ -141,7 +166,7 @@ export class MazeGenerator {
 
       // Check bounds and not visited
       if (nx > 0 && nx < this.width - 1 && ny > 0 && ny < this.height - 1) {
-        if (!this.visited[ny][nx] && !this.isInZone42(nx, ny)) {
+        if (!this.visited[ny][nx] && !this.isInProtectedArea(nx, ny)) {
           neighbors.push({ x: nx, y: ny, dir: dir.dir });
         }
       }
@@ -200,37 +225,66 @@ export class MazeGenerator {
    * Ensure zone 42 is completely surrounded by walls
    */
   private protectZone42(): void {
-    // Build walls around zone 42
-    const x1 = this.zone42.x - 1;
-    const x2 = this.zone42.x + this.zone42.width;
-    const y1 = this.zone42.y - 1;
-    const y2 = this.zone42.y + this.zone42.height;
+    // Build walls around the protected area
+    const x1 = this.protectedArea.x;
+    const x2 = this.protectedArea.x + this.protectedArea.width - 1;
+    const y1 = this.protectedArea.y;
+    const y2 = this.protectedArea.y + this.protectedArea.height - 1;
 
     // Set all walls around the boundary to intact
     for (let x = x1; x <= x2; x++) {
       if (x >= 0 && x < this.width) {
-        // Top border
         if (y1 >= 0 && y1 < this.height) {
+          this.maze[y1][x].walls.top = true;
+          this.maze[y1][x].walls.right = true;
           this.maze[y1][x].walls.bottom = true;
+          this.maze[y1][x].walls.left = true;
         }
-        // Bottom border
         if (y2 >= 0 && y2 < this.height) {
           this.maze[y2][x].walls.top = true;
+          this.maze[y2][x].walls.right = true;
+          this.maze[y2][x].walls.bottom = true;
+          this.maze[y2][x].walls.left = true;
         }
       }
     }
 
     for (let y = y1; y <= y2; y++) {
       if (y >= 0 && y < this.height) {
-        // Left border
         if (x1 >= 0 && x1 < this.width) {
+          this.maze[y][x1].walls.top = true;
           this.maze[y][x1].walls.right = true;
+          this.maze[y][x1].walls.bottom = true;
+          this.maze[y][x1].walls.left = true;
         }
-        // Right border
         if (x2 >= 0 && x2 < this.width) {
+          this.maze[y][x2].walls.top = true;
+          this.maze[y][x2].walls.right = true;
+          this.maze[y][x2].walls.bottom = true;
           this.maze[y][x2].walls.left = true;
         }
       }
+    }
+  }
+
+  /**
+   * Open the top entry and bottom-right exit portals.
+   */
+  private openPortals(): void {
+    const entryBorder = { x: 1, y: 0 };
+    const entryInterior = { x: 1, y: 1 };
+    const exitBorderX = this.getExitInteriorX();
+    const exitBorder = { x: exitBorderX, y: this.height - 1 };
+    const exitInterior = { x: exitBorderX, y: this.height - 2 };
+
+    if (this.maze[entryBorder.y]?.[entryBorder.x] && this.maze[entryInterior.y]?.[entryInterior.x]) {
+      this.maze[entryBorder.y][entryBorder.x].walls.bottom = false;
+      this.maze[entryInterior.y][entryInterior.x].walls.top = false;
+    }
+
+    if (this.maze[exitBorder.y]?.[exitBorder.x] && this.maze[exitInterior.y]?.[exitInterior.x]) {
+      this.maze[exitBorder.y][exitBorder.x].walls.top = false;
+      this.maze[exitInterior.y][exitInterior.x].walls.bottom = false;
     }
   }
 }

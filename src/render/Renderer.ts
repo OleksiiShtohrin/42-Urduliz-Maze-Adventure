@@ -8,6 +8,10 @@ export class Renderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private cellSize: number = 16; // pixels per cell
+  private margin: number = 32;
+  private layoutSignature: string = '';
+  private mazeOffsetX: number = 32;
+  private mazeOffsetY: number = 32;
 
   constructor(canvasElement: HTMLCanvasElement) {
     this.canvas = canvasElement;
@@ -21,8 +25,10 @@ export class Renderer {
    * Render the entire game state
    */
   public render(state: GameState): void {
+    this.updateLayout(state);
+
     // Clear canvas with background color
-    this.ctx.fillStyle = '#1a4d2e';
+    this.ctx.fillStyle = '#4d7a3b';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     if (state.maze.length === 0) return;
@@ -54,8 +60,8 @@ export class Renderer {
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[y].length; x++) {
         const cell = maze[y][x];
-        const px = x * this.cellSize;
-        const py = y * this.cellSize;
+        const px = this.mazeOffsetX + x * this.cellSize;
+        const py = this.mazeOffsetY + y * this.cellSize;
 
         // Draw cell floor
         this.ctx.fillStyle = '#8b7355'; // Brown path
@@ -101,8 +107,8 @@ export class Renderer {
    */
   private drawZone42(state: GameState): void {
     const z = state.zone42;
-    const px = z.x * this.cellSize;
-    const py = z.y * this.cellSize;
+    const px = this.mazeOffsetX + z.x * this.cellSize;
+    const py = this.mazeOffsetY + z.y * this.cellSize;
     const w = z.width * this.cellSize;
     const h = z.height * this.cellSize;
 
@@ -128,15 +134,15 @@ export class Renderer {
    */
   private drawMarkers(state: GameState): void {
     // Draw entry marker (green glow)
-    const entryPx = state.entryPos.x * this.cellSize;
-    const entryPy = state.entryPos.y * this.cellSize;
+    const entryPx = this.mazeOffsetX + state.entryPos.x * this.cellSize;
+    const entryPy = this.mazeOffsetY + state.entryPos.y * this.cellSize;
 
     this.ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
     this.ctx.fillRect(entryPx, entryPy, this.cellSize, this.cellSize);
 
     // Draw exit marker (purple/magical glow)
-    const exitPx = state.exitPos.x * this.cellSize;
-    const exitPy = state.exitPos.y * this.cellSize;
+    const exitPx = this.mazeOffsetX + state.exitPos.x * this.cellSize;
+    const exitPy = this.mazeOffsetY + state.exitPos.y * this.cellSize;
 
     // Animated glow effect
     const glowIntensity = (Math.sin(Date.now() / 500) + 1) / 2; // 0 to 1
@@ -159,8 +165,8 @@ export class Renderer {
    * Draw player character at position
    */
   private drawPlayer(pos: Position): void {
-    const px = pos.x * this.cellSize;
-    const py = pos.y * this.cellSize;
+    const px = this.mazeOffsetX + pos.x * this.cellSize;
+    const py = this.mazeOffsetY + pos.y * this.cellSize;
 
     // Draw player as a circle with color
     this.ctx.fillStyle = '#ff69b4'; // Hot pink
@@ -195,8 +201,8 @@ export class Renderer {
     // Draw path with semi-transparent highlighting
     for (let i = 0; i < path.length; i++) {
       const pos = path[i];
-      const px = pos.x * this.cellSize;
-      const py = pos.y * this.cellSize;
+      const px = this.mazeOffsetX + pos.x * this.cellSize;
+      const py = this.mazeOffsetY + pos.y * this.cellSize;
 
       // Gradient from yellow to transparent
       const opacity = (1 - i / path.length) * 0.4;
@@ -206,8 +212,8 @@ export class Renderer {
       // Draw line segments
       if (i < path.length - 1) {
         const nextPos = path[i + 1];
-        const nextPx = nextPos.x * this.cellSize + this.cellSize / 2;
-        const nextPy = nextPos.y * this.cellSize + this.cellSize / 2;
+        const nextPx = this.mazeOffsetX + nextPos.x * this.cellSize + this.cellSize / 2;
+        const nextPy = this.mazeOffsetY + nextPos.y * this.cellSize + this.cellSize / 2;
         const currentPx = px + this.cellSize / 2;
         const currentPy = py + this.cellSize / 2;
 
@@ -219,5 +225,25 @@ export class Renderer {
         this.ctx.stroke();
       }
     }
+  }
+
+  private updateLayout(state: GameState): void {
+    const signature = `${state.config.width}x${state.config.height}:${window.innerWidth}x${window.innerHeight}`;
+    if (signature === this.layoutSignature) return;
+
+    const availableWidth = Math.max(320, window.innerWidth - 48);
+    const availableHeight = Math.max(240, window.innerHeight - 180);
+
+    const horizontalCell = Math.floor((availableWidth - this.margin * 2) / state.config.width);
+    const verticalCell = Math.floor((availableHeight - this.margin * 2) / state.config.height);
+
+    this.cellSize = Math.max(6, Math.min(24, horizontalCell, verticalCell));
+    this.mazeOffsetX = this.margin;
+    this.mazeOffsetY = this.margin;
+
+    this.canvas.width = state.config.width * this.cellSize + this.margin * 2;
+    this.canvas.height = state.config.height * this.cellSize + this.margin * 2;
+
+    this.layoutSignature = signature;
   }
 }

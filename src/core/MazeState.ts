@@ -7,18 +7,22 @@ export class MazeState {
   public state: GameState;
 
   constructor(config: MazeConfig) {
+    const zone42 = {
+      x: Math.floor((config.width - 7) / 2),
+      y: Math.floor((config.height - 5) / 2),
+      width: 7,
+      height: 5,
+    };
+
+    const exitInteriorX = (config.width - 2) % 2 === 0 ? config.width - 3 : config.width - 2;
+
     this.state = {
       config,
       maze: [],
-      playerPos: { x: 1, y: 1 }, // Will be reset to entry
-      entryPos: { x: 1, y: 1 }, // Top-left passageway
-      exitPos: { x: config.width - 2, y: config.height - 2 }, // Bottom-right passageway
-      zone42: {
-        x: Math.floor((config.width - 7) / 2),
-        y: Math.floor((config.height - 5) / 2),
-        width: 7,
-        height: 5,
-      },
+      playerPos: { x: 1, y: 0 },
+      entryPos: { x: 1, y: 0 },
+      exitPos: { x: exitInteriorX, y: config.height - 1 },
+      zone42,
       currentPath: null,
       gameOver: false,
     };
@@ -43,15 +47,22 @@ export class MazeState {
       return false;
     }
 
-    // If we don't have maze data yet, can't validate
+    // Keep a one-cell moat around zone 42 sealed as well
+    const moatX = Math.max(0, this.state.zone42.x - 1);
+    const moatY = Math.max(0, this.state.zone42.y - 1);
+    const moatWidth = Math.min(this.state.config.width - moatX, this.state.zone42.width + 2);
+    const moatHeight = Math.min(this.state.config.height - moatY, this.state.zone42.height + 2);
+
+    if (pos.x >= moatX && pos.x < moatX + moatWidth && pos.y >= moatY && pos.y < moatY + moatHeight) {
+      return false;
+    }
+
+    // If we don't have maze data yet, can't validate walls
     if (this.state.maze.length === 0) {
       return true;
     }
 
-    // In maze: check if it's a passageway (cell with no walls on all sides, or accessible from player position)
-    // For simplicity, allow movement if maze is initialized
-    // Real collision checking would check maze structure
-    return true;
+    return !!this.state.maze[pos.y]?.[pos.x];
   }
 
   /**
